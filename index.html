@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>国家体制シミュレーター</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; }
+        #canvas-container { position: relative; width: 100%; height: 100%; min-height: 400px; }
+        canvas { display: block; width: 100%; height: 100%; border-radius: 0.5rem; background-color: #0f172a; }
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #e2e8f0;
+            border-radius: 4px;
+        }
+        input[type=range]:focus { outline: none; }
+        
+        .state-transition { transition: all 0.3s ease; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm p-4 z-10 flex-shrink-0">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-xl sm:text-2xl font-bold text-slate-900">国家体制シミュレーター</h1>
+                <p class="text-sm text-slate-500 mt-1">国家の「分断」と「統治」の力学がもたらすレジーム（体制）変化の可視化モデル</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-6xl mx-auto w-full p-4 flex flex-col gap-4 overflow-y-auto">
+        
+        <!-- Controls Panel (Top) -->
+        <div class="w-full bg-white p-4 sm:p-6 rounded-xl shadow-sm flex flex-col md:flex-row gap-6 flex-shrink-0 relative z-20">
+            
+            <!-- Sliders Section -->
+            <div class="w-full md:w-2/3 flex flex-col gap-5">
+                
+                <!-- Preset Buttons -->
+                <div>
+                    <span class="text-xs font-bold text-slate-500 mr-2 block sm:inline mb-2 sm:mb-0">プリセット（参考値）:</span>
+                    <div class="inline-flex flex-wrap gap-2">
+                        <button class="preset-btn px-3 py-1 bg-slate-50 hover:bg-blue-50 hover:text-blue-600 text-slate-600 text-xs font-medium rounded-full transition-colors border border-slate-200" data-int="85" data-coe="15">日本</button>
+                        <button class="preset-btn px-3 py-1 bg-slate-50 hover:bg-teal-50 hover:text-teal-600 text-slate-600 text-xs font-medium rounded-full transition-colors border border-slate-200" data-int="45" data-coe="15">アメリカ</button>
+                        <button class="preset-btn px-3 py-1 bg-slate-50 hover:bg-teal-50 hover:text-teal-600 text-slate-600 text-xs font-medium rounded-full transition-colors border border-slate-200" data-int="55" data-coe="20">ヨーロッパ</button>
+                        <!-- ハンガリーの統合度を下げ、権威主義化のリアルを反映 -->
+                        <button class="preset-btn px-3 py-1 bg-slate-50 hover:bg-yellow-50 hover:text-yellow-600 text-slate-600 text-xs font-medium rounded-full transition-colors border border-slate-200" data-int="50" data-coe="60">ハンガリー</button>
+                        <!-- ロシアと中国の統合度も、強権に依存している実態に合わせて低下 -->
+                        <button class="preset-btn px-3 py-1 bg-slate-50 hover:bg-orange-50 hover:text-orange-600 text-slate-600 text-xs font-medium rounded-full transition-colors border border-slate-200" data-int="35" data-coe="80">ロシア</button>
+                        <button class="preset-btn px-3 py-1 bg-slate-50 hover:bg-orange-50 hover:text-orange-600 text-slate-600 text-xs font-medium rounded-full transition-colors border border-slate-200" data-int="30" data-coe="85">中国</button>
+                        <button class="preset-btn px-3 py-1 bg-slate-50 hover:bg-rose-50 hover:text-rose-600 text-slate-600 text-xs font-medium rounded-full transition-colors border border-slate-200" data-int="25" data-coe="85">イラン</button>
+                        <button class="preset-btn px-3 py-1 bg-slate-50 hover:bg-rose-50 hover:text-rose-600 text-slate-600 text-xs font-medium rounded-full transition-colors border border-slate-200" data-int="15" data-coe="95">イラク(フセイン期)</button>
+                        <button class="preset-btn px-3 py-1 bg-slate-50 hover:bg-red-50 hover:text-red-600 text-slate-600 text-xs font-medium rounded-full transition-colors border border-slate-200" data-int="15" data-coe="15">イラク(崩壊後)</button>
+                        <button class="preset-btn px-3 py-1 bg-slate-50 hover:bg-red-50 hover:text-red-600 text-slate-600 text-xs font-medium rounded-full transition-colors border border-slate-200" data-int="10" data-coe="10">シリア(内戦期)</button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-6">
+                    <!-- Integration Slider -->
+                    <div class="flex-1 space-y-3">
+                        <div class="flex justify-between items-end">
+                            <label class="font-bold text-slate-700 flex items-center gap-2">
+                                <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">基盤</span>
+                                国内統合度
+                                <!-- Tooltip for Integration -->
+                                <div class="relative group inline-block ml-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400 cursor-help hover:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <div class="absolute top-full left-0 sm:left-1/2 transform sm:-translate-x-1/2 mt-2 w-[280px] sm:w-72 p-4 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl leading-relaxed">
+                                        <!-- 上向きの矢印 -->
+                                        <div class="absolute bottom-full left-4 sm:left-1/2 transform sm:-translate-x-1/2 border-8 border-transparent border-b-slate-800"></div>
+                                        <p class="font-bold mb-1 text-blue-300">▼ 統合度が低い理由（分断）</p>
+                                        <p class="mb-2">深刻な多民族・多宗教国家であったり、植民地時代にヨーロッパ列強によって民族分布を無視した「恣意的な直線による国境線」を勝手に引かれた地域（中東・アフリカなど）で起こりやすい状態です。「私たちは同じ国民である」という連帯感がありません。</p>
+                                        <p class="font-bold mb-1 text-blue-300">▼ 統合度が高い理由（連帯）</p>
+                                        <p>長い歴史の中での同化、言語の統一、建国の理念の共有などにより、強固な「ナショナル・アイデンティティ」が形成されている状態です。</p>
+                                    </div>
+                                </div>
+                            </label>
+                            <span id="val-integration" class="text-lg font-bold text-blue-600">50%</span>
+                        </div>
+                        <p class="text-xs text-slate-500 min-h-[2rem]">国民の価値観や連帯の共有度。高いと違いを超えて完全に交わります。</p>
+                        <input type="range" id="slider-integration" min="0" max="100" value="50">
+                        <div class="flex justify-between text-xs text-slate-400">
+                            <span>低い（分断）</span>
+                            <span>高い（連帯）</span>
+                        </div>
+                    </div>
+
+                    <!-- Coercion Slider -->
+                    <div class="flex-1 space-y-3 pt-4 sm:pt-0 sm:pl-6 border-t sm:border-t-0 sm:border-l border-slate-100">
+                        <div class="flex justify-between items-end">
+                            <label class="font-bold text-slate-700 flex items-center gap-2">
+                                <span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs">統治</span>
+                                強権・統制力
+                                <!-- Tooltip for Coercion -->
+                                <div class="relative group inline-block ml-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400 cursor-help hover:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <div class="absolute top-full right-0 sm:left-1/2 transform sm:-translate-x-1/2 mt-2 w-[280px] sm:w-80 p-4 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl leading-relaxed">
+                                        <!-- 上向きの矢印 -->
+                                        <div class="absolute bottom-full right-4 sm:left-1/2 transform sm:-translate-x-1/2 border-8 border-transparent border-b-slate-800"></div>
+                                        <p class="font-bold mb-1 text-red-300">▼ 分断と強権の悪循環</p>
+                                        <p class="mb-2">国内統合度が低下し社会がまとまらなくなると、人々は強いリーダーを求め、指導者も「国をまとめるため」に強権を発動しやすくなります。この悪循環が権威主義化の大きな要因です。</p>
+                                        <p class="font-bold mb-1 text-red-300">▼ 統制力が高い状態（独裁・抑圧）</p>
+                                        <p class="mb-2">軍部や独裁者による武力弾圧、秘密警察による監視などによって、上から無理やり秩序を維持している状態です。</p>
+                                        <p class="font-bold mb-1 text-red-300">▼ 統制力が低い状態（自由・放任）</p>
+                                        <p>国家権力による市民への強制や干渉が弱い状態です。統合度が高ければ「自由な社会」として機能しますが、低い場合は社会をまとめるタガがなくなり「無政府状態」に陥る危険があります。</p>
+                                    </div>
+                                </div>
+                            </label>
+                            <span id="val-coercion" class="text-lg font-bold text-red-600">50%</span>
+                        </div>
+                        <p class="text-xs text-slate-500 min-h-[2rem]">国家権力による上からの強制力。高いと市民を中央の檻に縛り付けます。</p>
+                        <input type="range" id="slider-coercion" min="0" max="100" value="50">
+                        <div class="flex justify-between text-xs text-slate-400">
+                            <span>低い（自由）</span>
+                            <span>高い（独裁）</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current State Display -->
+            <div class="w-full md:w-1/3 flex flex-col justify-center">
+                <div id="state-card" class="p-4 rounded-lg border-2 state-transition bg-slate-50 border-slate-200 h-full flex flex-col justify-center">
+                    <div class="text-xs font-bold uppercase tracking-wider mb-1" id="state-label">現在の体制</div>
+                    <h2 id="state-title" class="text-lg sm:text-xl font-black mb-1 text-slate-800">移行期 / 不安定</h2>
+                    <p id="state-desc" class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                        シミュレーションを実行中です。
+                    </p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Canvas Panel -->
+        <div class="w-full bg-white p-2 rounded-xl shadow-sm flex flex-col flex-1 min-h-[400px]">
+            <div id="canvas-container" class="flex-1 rounded-lg overflow-hidden relative">
+                <canvas id="sim-canvas"></canvas>
+                
+                <!-- Overlay Gradients for dramatic effect -->
+                <div id="danger-overlay" class="absolute inset-0 bg-red-500/0 pointer-events-none transition-all duration-1000 mix-blend-color-burn"></div>
+            </div>
+            <div class="p-3 text-center text-xs text-slate-400">
+                分断時は赤く太い国境線が走り、統合時は多様な色が白く緩やかなネットワークで結ばれます。
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // --- State Definitions ---
+        const STATES = {
+            STABLE_DEMOCRACY: {
+                title: "安定した民主主義",
+                desc: "「敗者の同意」が成立する社会。価値観やルールが共有（統合）されているため、強権による統制がなくても市民は自発的にまとまり、自由と秩序が両立しています。",
+                color: "border-blue-400 bg-blue-50 text-blue-900",
+                labelColor: "text-blue-600"
+            },
+            POLARIZED_DEMOCRACY: {
+                title: "分断された民主主義",
+                desc: "社会の分断が進行し、陣営間の対立が激化している状態。表現の自由は保障されていますが、妥協が難しくなり、政治的麻痺（機能不全）が起きています。",
+                color: "border-teal-400 bg-teal-50 text-teal-900",
+                labelColor: "text-teal-600"
+            },
+            ILLIBERAL_DEMOCRACY: {
+                title: "非自由主義的民主主義",
+                desc: "選挙などの制度は存在するものの、指導者がメディアを統制したり少数派の権利を制限したりして、実質的に自由が後退している状態（民主主義のバックスライディング）です。",
+                color: "border-yellow-400 bg-yellow-50 text-yellow-900",
+                labelColor: "text-yellow-600"
+            },
+            TOTALITARIAN: {
+                title: "全体主義・監視社会",
+                desc: "十分に統合された社会であるにも関わらず、過度な強権で市民を縛り付けている状態。高度なテクノロジーを用いた監視社会や、絶対的なイデオロギー支配が行き着く先です。",
+                color: "border-purple-500 bg-purple-50 text-purple-900",
+                labelColor: "text-purple-600"
+            },
+            AUTHORITARIANISM: {
+                title: "権威主義体制",
+                desc: "国民の統合が不十分な社会において、一党支配や強力な指導者によって上から秩序を維持している状態。経済成長や国家の安定を理由に統制が正当化されることが多いです。",
+                color: "border-orange-500 bg-orange-50 text-orange-900",
+                labelColor: "text-orange-600"
+            },
+            TYRANNY: {
+                title: "恐怖政治・強硬独裁",
+                desc: "深刻な民族・宗教対立（統合の欠如）を、独裁者や軍部が「恐怖と暴力」のみで無理やり押さえつけている状態です。統制が緩めば即座に内戦に転落する危険があります。",
+                color: "border-rose-500 bg-rose-50 text-rose-900",
+                labelColor: "text-rose-600"
+            },
+            FAILED_STATE: {
+                title: "国家破綻・内戦",
+                desc: "「私たちは同じ国民だ」という統合意識がなく、それを押さえつける強権力も存在しない（または崩壊した）状態。国境線が引かれ、集団間の激しい争いが生じます。",
+                color: "border-red-600 bg-red-50 text-red-900",
+                labelColor: "text-red-600"
+            }
+        };
+
+        // --- Elements ---
+        const sIntegration = document.getElementById('slider-integration');
+        const sCoercion = document.getElementById('slider-coercion');
+        const vIntegration = document.getElementById('val-integration');
+        const vCoercion = document.getElementById('val-coercion');
+        
+        const stateCard = document.getElementById('state-card');
+        const stateTitle = document.getElementById('state-title');
+        const stateDesc = document.getElementById('state-desc');
+        const stateLabel = document.getElementById('state-label');
+        const dangerOverlay = document.getElementById('danger-overlay');
+
+        const canvas = document.getElementById('sim-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- Simulation Variables ---
+        let width, height;
+        let particles = [];
+        const numParticles = 120;
+        
+        // Faction Colors
+        const baseColors = [
+            { r: 239, g: 68, b: 68 },   // Red
+            { r: 59, g: 130, b: 246 },  // Blue
+            { r: 34, g: 197, b: 94 },   // Green
+            { r: 234, g: 179, b: 8 }    // Yellow
+        ];
+        
+        // --- Initialize ---
+        function init() {
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Create particles
+            for (let i = 0; i < numParticles; i++) {
+                particles.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2,
+                    faction: i % 4, // 4 factions
+                    radius: 4 + Math.random() * 3
+                });
+            }
+
+            // Preset Buttons Logic
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    sIntegration.value = e.target.dataset.int;
+                    sCoercion.value = e.target.dataset.coe;
+                    updateUI();
+                });
+            });
+
+            sIntegration.addEventListener('input', updateUI);
+            sCoercion.addEventListener('input', updateUI);
+            updateUI();
+            
+            requestAnimationFrame(animate);
+        }
+
+        function resizeCanvas() {
+            const container = document.getElementById('canvas-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            width = canvas.width;
+            height = canvas.height;
+        }
+
+        // --- Update UI & State Logic ---
+        function updateUI() {
+            const intVal = parseInt(sIntegration.value);
+            const coeVal = parseInt(sCoercion.value);
+            
+            vIntegration.innerText = intVal + '%';
+            vCoercion.innerText = coeVal + '%';
+
+            // 7分類の判定ロジック
+            let currentState;
+            if (intVal >= 60) {
+                if (coeVal < 40) currentState = STATES.STABLE_DEMOCRACY;
+                else if (coeVal < 70) currentState = STATES.ILLIBERAL_DEMOCRACY;
+                else currentState = STATES.TOTALITARIAN;
+            } else if (intVal >= 35) {
+                if (coeVal < 40) currentState = STATES.POLARIZED_DEMOCRACY;
+                else if (coeVal < 70) currentState = STATES.ILLIBERAL_DEMOCRACY;
+                else currentState = STATES.AUTHORITARIANISM;
+            } else {
+                if (coeVal < 40) currentState = STATES.FAILED_STATE;
+                else currentState = STATES.TYRANNY;
+            }
+
+            // Update DOM
+            stateTitle.innerText = currentState.title;
+            stateDesc.innerText = currentState.desc;
+            stateCard.className = `p-5 rounded-lg border-2 state-transition ${currentState.color}`;
+            stateLabel.className = `text-xs font-bold uppercase tracking-wider mb-1 ${currentState.labelColor}`;
+
+            // Visual effect for background danger
+            if (currentState === STATES.FAILED_STATE) {
+                const intensity = (40 - intVal) / 40;
+                dangerOverlay.style.backgroundColor = `rgba(239, 68, 68, ${intensity * 0.25})`; // Red
+            } else if (currentState === STATES.TYRANNY) {
+                const intensity = (coeVal - 40) / 60;
+                dangerOverlay.style.backgroundColor = `rgba(159, 18, 57, ${intensity * 0.2})`; // Rose 900
+            } else if (currentState === STATES.STABLE_DEMOCRACY) {
+                const intensity = (intVal - 60) / 40;
+                dangerOverlay.style.backgroundColor = `rgba(255, 255, 255, ${intensity * 0.15})`; // Light
+            } else {
+                dangerOverlay.style.backgroundColor = `rgba(0, 0, 0, 0)`;
+            }
+        }
+
+        // --- Animation Loop ---
+        function animate() {
+            // 背景の描画
+            ctx.fillStyle = "#0f172a";
+            ctx.fillRect(0, 0, width, height);
+            
+            const intVal = parseInt(sIntegration.value) / 100; // 0.0 to 1.0
+            const coeVal = parseInt(sCoercion.value) / 100;    // 0.0 to 1.0
+            
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            ctx.lineWidth = 1;
+
+            // Draw "Coercion/Border" visual (The Cage)
+            if (coeVal > 0.1) {
+                const cageRadius = Math.max(80, Math.min(width, height) / 2 * (1 - coeVal * 0.7));
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, cageRadius, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(239, 68, 68, ${coeVal * 0.8})`; // Red border
+                ctx.lineWidth = coeVal * 5; 
+                ctx.stroke();
+                
+                ctx.fillStyle = `rgba(239, 68, 68, ${coeVal * 0.05})`;
+                ctx.fill();
+            }
+
+            // 物理計算の前に、各パーティクルの「最も近い別派閥」を見つける（国境線描画用）
+            let nearestEnemies = [];
+            for (let i = 0; i < numParticles; i++) {
+                let p = particles[i];
+                let minDist = Infinity;
+                let nearest = null;
+                for (let j = 0; j < numParticles; j++) {
+                    if (i === j) continue;
+                    let p2 = particles[j];
+                    if (p.faction !== p2.faction) {
+                        let dx = p.x - p2.x;
+                        let dy = p.y - p2.y;
+                        let distSq = dx*dx + dy*dy;
+                        if (distSq < minDist) {
+                            minDist = distSq;
+                            nearest = p2;
+                        }
+                    }
+                }
+                nearestEnemies.push({ p2: nearest, dist: Math.sqrt(minDist) });
+            }
+
+            // 物理計算とパーティクル・ネットワーク描画
+            for (let i = 0; i < numParticles; i++) {
+                let p = particles[i];
+                
+                // 1. Coercion Force (Pull to center / cage bounds)
+                let dxC = centerX - p.x;
+                let dyC = centerY - p.y;
+                let distToCenter = Math.sqrt(dxC*dxC + dyC*dyC);
+                const cageRadius = Math.max(80, Math.min(width, height) / 2 * (1 - coeVal * 0.7));
+
+                if (coeVal > 0.1) {
+                    // 中央への強い引力（独裁の求心力を強化し、無理やり押し込む）
+                    p.vx += dxC * coeVal * 0.005;
+                    p.vy += dyC * coeVal * 0.005;
+                    
+                    // 檻の外に出ようとした時の強い押し返し（壁）
+                    if (distToCenter > cageRadius - 10) {
+                        p.vx += dxC * coeVal * 0.03;
+                        p.vy += dyC * coeVal * 0.03;
+                    }
+                } else {
+                    // 独裁がない場合、領土全体に緩やかにとどまる微弱な引力
+                    p.vx += dxC * 0.0001;
+                    p.vy += dyC * 0.0001;
+                }
+
+                for (let j = i + 1; j < numParticles; j++) {
+                    let p2 = particles[j];
+                    let dx = p.x - p2.x;
+                    let dy = p.y - p2.y;
+                    let distSq = dx * dx + dy * dy;
+                    let dist = Math.sqrt(distSq);
+                    if (dist === 0) continue;
+
+                    let isSame = p.faction === p2.faction;
+                    
+                    // 【交わる機能】統合度が0.7以上になると、異なる集団も同族として振る舞い始める
+                    let blending = Math.max(0, (intVal - 0.7) / 0.3); // 0.7で0、1.0で1
+
+                    // --- 引力とネットワーク（連帯） ---
+                    // 統合度が50%以上、または同族の場合はネットワークを形成
+                    if (isSame || intVal >= 0.5) {
+                        // 目標とする距離（分断時の同族はギュッと固まり、統合時は広がる）
+                        let targetDist = (intVal < 0.5 && isSame) ? 20 : 60 + (intVal * 40); // ★密集度を緩和（ゆるく）
+                        if (coeVal > 0.5) targetDist *= 0.7; 
+                        
+                        // 引力の強さ係数（統合度が高いほど、異族間でも引力が強くなる）
+                        let forceFactor = isSame ? 1 : (intVal - 0.4) * 1.6;
+                        // blending中は完全に同族と同じ力になる
+                        if (!isSame && blending > 0) forceFactor = 1;
+
+                        if (dist < 200 && forceFactor > 0) { // ★引力が届く距離を拡大
+                            let k = (intVal < 0.5 && isSame) ? 0.01 : 0.001; // ★統合時の結束力は弱く（ゆるく漂う）
+                            let force = (dist - targetDist) * k * forceFactor;
+                            
+                            p.vx -= (dx / dist) * force;
+                            p.vy -= (dy / dist) * force;
+                            p2.vx += (dx / dist) * force;
+                            p2.vy += (dy / dist) * force;
+                        }
+
+                        // ネットワーク線の描画
+                        let linkThreshold = (intVal < 0.5 && isSame) ? 60 : 80 + (intVal * 100); // ★繋がりやすくする
+                        if (dist < linkThreshold && forceFactor > 0) {
+                            let linkStrength = (1 - dist / linkThreshold); // ★描画ロジックを整理
+                            
+                            if (linkStrength > 0) {
+                                let alpha = linkStrength * ((intVal < 0.5) ? 0.6 : 0.15 + (intVal * 0.35)); // ★統合時はふんわりと
+                                ctx.beginPath();
+                                ctx.moveTo(p.x, p.y);
+                                ctx.lineTo(p2.x, p2.y);
+                                
+                                if (intVal < 0.5 && isSame) {
+                                    // 分断時は派閥の色で繋がる
+                                    let bc = baseColors[p.faction];
+                                    ctx.strokeStyle = `rgba(${bc.r}, ${bc.g}, ${bc.b}, ${alpha})`;
+                                    ctx.lineWidth = linkStrength * 2;
+                                } else {
+                                    // ★統合時は白くふんわりとした線で社会全体が繋がる
+                                    let lum = Math.floor(200 + (intVal * 55)); // より白く
+                                    ctx.strokeStyle = `rgba(${lum}, ${lum}, ${lum}, ${alpha})`;
+                                    ctx.lineWidth = linkStrength * 1.5; // 少し細めにふんわりと
+                                }
+                                ctx.stroke();
+                            }
+                        }
+                    }
+
+                    // --- 斥力と国境線（分断時の対立） ---
+                    if (!isSame) {
+                        let conflictSeverity = 1 - intVal;
+                        // ★修正：80%でブツッと消えるバグを直し、100%直前まで滑らかに計算するように変更
+                        if (conflictSeverity > 0.01) { 
+                            let repulsionRange = 40 + (conflictSeverity * 120); // 斥力の範囲
+                            
+                            if (dist < repulsionRange) {
+                                // 強い反発力（無人地帯・国境を作るために強化）
+                                let repulsion = conflictSeverity * (1 - dist/repulsionRange) * 0.8;
+                                // 統合度が上がりblendingが始まると反発力は消える
+                                repulsion *= (1 - blending);
+
+                                if (repulsion > 0) {
+                                    p.vx += (dx / dist) * repulsion;
+                                    p.vy += (dy / dist) * repulsion;
+                                    p2.vx -= (dx / dist) * repulsion;
+                                    p2.vy -= (dy / dist) * repulsion;
+                                }
+
+                                // 【軋轢の火花の描画】
+                                let cx = (p.x + p2.x) / 2;
+                                let cy = (p.y + p2.y) / 2;
+                                let distanceRatio = dist / repulsionRange; 
+
+                                // 強権力が高い（独裁）ほど、国境線ではなく無理やり押し付けられた「軋轢の火花」になる
+                                if (coeVal > 0.5 && dist < 50) {
+                                    // 火花表現のため、ここは近さ(1 - distanceRatio)を使う
+                                    let intensity = 1 - distanceRatio; 
+                                    let stress = coeVal * conflictSeverity * intensity;
+                                    ctx.beginPath();
+                                    ctx.arc(cx, cy, stress * 12, 0, Math.PI*2);
+                                    // 抑圧された赤黒い火花
+                                    ctx.fillStyle = `rgba(255, ${200 - coeVal*150}, 50, ${Math.min(1, stress * 2)})`;
+                                    ctx.fill();
+                                    
+                                    // ギザギザのスパーク（無理くり感の強調）
+                                    if (Math.random() > 0.5) {
+                                        ctx.beginPath();
+                                        ctx.moveTo(cx + (Math.random()-0.5)*25, cy + (Math.random()-0.5)*25);
+                                        ctx.lineTo(cx + (Math.random()-0.5)*25, cy + (Math.random()-0.5)*25);
+                                        ctx.strokeStyle = `rgba(255, 255, 200, ${stress})`;
+                                        ctx.lineWidth = 1.5;
+                                        ctx.stroke();
+                                    }
+                                } 
+                                else if (dist < 50 && conflictSeverity > 0.5) { // 統合度50%未満のときのみ接近火花
+                                    // 通常の接近時火花
+                                    let intensity = 1 - distanceRatio; 
+                                    ctx.beginPath();
+                                    ctx.arc(cx, cy, intensity * 6, 0, Math.PI*2);
+                                    ctx.fillStyle = `rgba(255, 200, 50, ${Math.min(1, intensity * conflictSeverity)})`;
+                                    ctx.fill();
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 3. Independent Movement (Freedom vs Chaos)
+                let freedom = 1 - coeVal;
+                let chaos = (1 - intVal) * 0.8; 
+                
+                // 集団が塊として蠢くようなノイズ
+                p.vx += (Math.random() - 0.5) * (chaos + freedom * 0.2);
+                p.vy += (Math.random() - 0.5) * (chaos + freedom * 0.2);
+
+                // 【追加】強権で無理やり押し込められている時の「ストレス（振動）」
+                if (coeVal > 0.5 && intVal < 0.5) {
+                    let stress = coeVal * (1 - intVal);
+                    p.vx += (Math.random() - 0.5) * stress * 3.5;
+                    p.vy += (Math.random() - 0.5) * stress * 3.5;
+                }
+
+                // Apply velocity & friction
+                let friction = 0.92 - (coeVal * 0.05); // 統制が強いほど動きが重くなる
+                if (intVal < 0.3 && coeVal < 0.3) friction = 0.96; // 分断（内戦）時は激しく動き回る
+
+                p.vx *= friction;
+                p.vy *= friction;
+                p.x += p.vx;
+                p.y += p.vy;
+
+                // Boundary collision (キャンバスの端)
+                if (p.x < 0) { p.x = 0; p.vx *= -1; }
+                if (p.x > width) { p.x = width; p.vx *= -1; }
+                if (p.y < 0) { p.y = 0; p.vy *= -1; }
+                if (p.y > height) { p.y = height; p.vy *= -1; }
+
+                // Draw Particle
+                let baseC = baseColors[p.faction];
+                
+                // 統合が高い＝多様性を保ちながら輝く表現
+                let highlight = intVal * 60; 
+                let r = Math.min(255, baseC.r + highlight);
+                let g = Math.min(255, baseC.g + highlight);
+                let b = Math.min(255, baseC.b + highlight);
+
+                // 民主主義（高統合・低強権）の時は、光のオーラを纏う
+                if (intVal > 0.7 && coeVal < 0.3) {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius + 3, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${intVal * 0.3})`;
+                    ctx.fill();
+                }
+
+                // 本体
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                ctx.fill();
+            }
+
+            // 【国境線の描画】（疑似ボロノイ境界）
+            let freedom = 1 - coeVal;
+            // 統合度が50%未満（分断状態）で、自由がある程度あるときのみ明確な国境線が現れる
+            if (intVal < 0.5 && freedom > 0.1) {
+                // 統合度が低いほど線が濃く、太くなる
+                let borderIntensity = (0.5 - intVal) * 2; // intVal=0 で 1, intVal=0.5 で 0
+                
+                for (let i = 0; i < numParticles; i++) {
+                    let p = particles[i];
+                    let enemyInfo = nearestEnemies[i];
+                    
+                    if (enemyInfo && enemyInfo.p2) {
+                        let p2 = enemyInfo.p2;
+                        let dist = enemyInfo.dist;
+                        let cx = (p.x + p2.x) / 2;
+                        let cy = (p.y + p2.y) / 2;
+                        let nx = -(p.y - p2.y) / dist;
+                        let ny = (p.x - p2.x) / dist;
+                        
+                        // 距離が離れるほど太く、長くするロジック
+                        // 画面サイズを考慮し最大想定距離を300とする
+                        let distanceRatio = Math.min(1, dist / 300);
+                        
+                        // 距離が離れるほど線が長くなる（分厚い壁のようになる）
+                        let lineLen = (15 + (distanceRatio * 70)) * freedom * borderIntensity; 
+                        let lineAlpha = borderIntensity * 0.8 * freedom; 
+                        
+                        if (lineLen > 2) {
+                            ctx.beginPath();
+                            ctx.moveTo(cx - nx * lineLen, cy - ny * lineLen);
+                            ctx.lineTo(cx + nx * lineLen, cy + ny * lineLen);
+                            ctx.strokeStyle = `rgba(255, 30, 30, ${lineAlpha})`; 
+                            
+                            // 距離が離れるほど太くする（最大25px程度）
+                            ctx.lineWidth = 1 + (25 * borderIntensity * distanceRatio); 
+                            ctx.lineCap = "round";
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Start
+        window.onload = init;
+    </script>
+</body>
+</html>
