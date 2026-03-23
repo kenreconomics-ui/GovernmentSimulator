@@ -64,9 +64,7 @@
                         <button class="preset-btn px-3 py-1 bg-slate-50 hover:bg-blue-50 hover:text-blue-600 text-slate-600 text-xs font-medium rounded-full transition-colors border border-slate-200" data-int="85" data-coe="15">日本</button>
                         <button class="preset-btn px-3 py-1 bg-slate-50 hover:bg-teal-50 hover:text-teal-600 text-slate-600 text-xs font-medium rounded-full transition-colors border border-slate-200" data-int="45" data-coe="15">アメリカ</button>
                         <button class="preset-btn px-3 py-1 bg-slate-50 hover:bg-teal-50 hover:text-teal-600 text-slate-600 text-xs font-medium rounded-full transition-colors border border-slate-200" data-int="55" data-coe="20">ヨーロッパ</button>
-                        <!-- ハンガリーの統合度を下げ、権威主義化のリアルを反映 -->
                         <button class="preset-btn px-3 py-1 bg-slate-50 hover:bg-yellow-50 hover:text-yellow-600 text-slate-600 text-xs font-medium rounded-full transition-colors border border-slate-200" data-int="50" data-coe="60">ハンガリー</button>
-                        <!-- ロシアと中国の統合度も、強権に依存している実態に合わせて低下 -->
                         <button class="preset-btn px-3 py-1 bg-slate-50 hover:bg-orange-50 hover:text-orange-600 text-slate-600 text-xs font-medium rounded-full transition-colors border border-slate-200" data-int="35" data-coe="80">ロシア</button>
                         <button class="preset-btn px-3 py-1 bg-slate-50 hover:bg-orange-50 hover:text-orange-600 text-slate-600 text-xs font-medium rounded-full transition-colors border border-slate-200" data-int="30" data-coe="85">中国</button>
                         <button class="preset-btn px-3 py-1 bg-slate-50 hover:bg-rose-50 hover:text-rose-600 text-slate-600 text-xs font-medium rounded-full transition-colors border border-slate-200" data-int="25" data-coe="85">イラン</button>
@@ -92,7 +90,7 @@
                                         <!-- 上向きの矢印 -->
                                         <div class="absolute bottom-full left-4 sm:left-1/2 transform sm:-translate-x-1/2 border-8 border-transparent border-b-slate-800"></div>
                                         <p class="font-bold mb-1 text-blue-300">▼ 統合度が低い理由（分断）</p>
-                                        <p class="mb-2">深刻な多民族・多宗教国家であったり、植民地時代にヨーロッパ列強によって民族分布を無視した「恣意的な直線による国境線」を勝手に引かれた地域（中東・アフリカなど）で起こりやすい状態です。「私たちは同じ国民である」という連帯感がありません。</p>
+                                        <p class="mb-2">深刻な多民族・多宗教国家や人為的な国境線（中東など）を抱える地域のほか、現代では<b>社会の許容度を超えた急激な移民受け入れや、軋轢を生む極端な多文化主義に対する反発</b>によっても「私たちは同じ国民である」という連帯感が失われ、分断が進行します。</p>
                                         <p class="font-bold mb-1 text-blue-300">▼ 統合度が高い理由（連帯）</p>
                                         <p>長い歴史の中での同化、言語の統一、建国の理念の共有などにより、強固な「ナショナル・アイデンティティ」が形成されている状態です。</p>
                                     </div>
@@ -141,6 +139,24 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Intervention Buttons (NEW) -->
+                <div class="mt-1 pt-3 border-t border-slate-100">
+                    <span class="text-xs font-bold text-slate-500 mr-2 block sm:inline mb-2 sm:mb-0">社会への介入（イベント）:</span>
+                    <div class="inline-flex flex-wrap gap-2">
+                        <button id="btn-polarize" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-md transition-colors border border-rose-200 shadow-sm flex items-center gap-1 active:scale-95">
+                            💣 分断を進行させる（急激な移民・多文化主義の軋轢など）
+                        </button>
+                        <button id="btn-coerce" class="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-600 text-xs font-bold rounded-md transition-colors border border-purple-200 shadow-sm flex items-center gap-1 active:scale-95">
+                            🚨 治安出動・強権発動
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-2 leading-tight">
+                        ※社会の許容度を超えた急激な移民受け入れや極端な多文化主義が、反発やヘイトを招いて「統合」を破壊し、民主主義が内部から崩壊していく過程を観察できます。<br>
+                        ※社会がカオスに陥った際、「治安出動」によって無理やり秩序を取り戻すこともできますが、体制は変化します。
+                    </p>
+                </div>
+
             </div>
 
             <!-- Current State Display -->
@@ -270,6 +286,46 @@
                     sCoercion.value = e.target.dataset.coe;
                     updateUI();
                 });
+            });
+
+            // Intervention Buttons Logic (NEW)
+            const btnPolarize = document.getElementById('btn-polarize');
+            const btnCoerce = document.getElementById('btn-coerce');
+
+            btnPolarize.addEventListener('click', () => {
+                let currentInt = parseInt(sIntegration.value);
+                // 統合度を強制的に15%下げる
+                sIntegration.value = Math.max(0, currentInt - 15);
+                
+                // パーティクルにカオス（パニック状態）を与える
+                particles.forEach(p => {
+                    p.vx += (Math.random() - 0.5) * 20;
+                    p.vy += (Math.random() - 0.5) * 20;
+                });
+                updateUI();
+            });
+
+            btnCoerce.addEventListener('click', () => {
+                let currentCoe = parseInt(sCoercion.value);
+                // 統制力を強制的に20%上げる
+                sCoercion.value = Math.min(100, currentCoe + 20);
+                // ※強権発動による統合度の低下処理を削除
+                
+                // 中央への強い強制力を与える（無理やり集める）
+                const centerX = width / 2;
+                const centerY = height / 2;
+                particles.forEach(p => {
+                    // ★修正：暴れ回っているのを力で「鎮圧」する（速度を奪い、ピタッと止める）
+                    p.vx *= 0.1;
+                    p.vy *= 0.1;
+                    
+                    // ★修正：ブレない（発散しない）程度の重たい力で中央の檻へ引き寄せる
+                    let dx = centerX - p.x;
+                    let dy = centerY - p.y;
+                    p.vx += dx * 0.015;
+                    p.vy += dy * 0.015;
+                });
+                updateUI();
             });
 
             sIntegration.addEventListener('input', updateUI);
